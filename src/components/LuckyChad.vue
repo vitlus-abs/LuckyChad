@@ -3,12 +3,12 @@
     <img src="@/assets/logo.svg" alt="Lucky Chad Logo" class="logo" />
     <h1>Lucky Chad Lottery</h1>
     <p>Entry Fee: {{ entryFee }} ETH</p>
-    <button @click="enterLottery">Enter Lottery</button>
+    <button @click="enterLottery" :disabled="!isConnected">Enter Lottery</button>
+    <p>{{ message }}</p>
     <h2>Players:</h2>
     <ul>
       <li v-for="(player, index) in players" :key="index">{{ player }}</li>
     </ul>
-    <p>{{ message }}</p>
   </div>
 </template>
 
@@ -114,6 +114,7 @@ export default {
           type: "function",
         },
       ],
+      isConnected: false,
     };
   },
   mounted() {
@@ -125,15 +126,25 @@ export default {
         try {
           await window.ethereum.request({ method: 'eth_requestAccounts' });
           const provider = new ethers.BrowserProvider(window.ethereum); // Use BrowserProvider for ethers v6
-          const signer = await provider.getSigner();
-          const contract = new ethers.Contract(this.contractAddress, this.contractABI, signer);
+          const network = await provider.getNetwork();
 
-          // Fetch entry fee and players
-          const fee = await contract.entryFee();
-          this.entryFee = ethers.formatEther(fee); // Updated for ethers v6
+          // Abstract Testnet chain ID
+          const abstractTestnetChainId = 11124n; // Replace with the actual chain ID
 
-          const playersArray = await contract.getPlayers();
-          this.players = playersArray;
+          if (network.chainId !== abstractTestnetChainId) {
+            await this.switchToAbstractTestnet();
+          } else {
+            this.isConnected = true;
+            const signer = await provider.getSigner();
+            const contract = new ethers.Contract(this.contractAddress, this.contractABI, signer);
+
+            // Fetch entry fee and players
+            const fee = await contract.entryFee();
+            this.entryFee = ethers.formatEther(fee); // Updated for ethers v6
+
+            const playersArray = await contract.getPlayers();
+            this.players = playersArray;
+          }
         } catch (error) {
           console.error('Error connecting to contract:', error);
           this.message = 'Error connecting to contract';
@@ -143,8 +154,51 @@ export default {
         this.message = 'Ethereum provider not found';
       }
     },
+    async switchToAbstractTestnet() {
+      try {
+        // Request MetaMask to switch to the Abstract Testnet
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2B74' }], // Use hex string of chain ID (1234 = 0x4D2)
+        });
+        this.isConnected = true;
+        this.message = 'Connected to Abstract Testnet!';
+        this.init(); // Re-initialize after switching
+      } catch (switchError) {
+        // If the chain is not added, add it
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: '0x2B74', // Abstract Testnet chain ID
+                  chainName: 'Abstract Testnet',
+                  rpcUrls: ['https://api.testnet.abs.xyz'], // Replace with actual RPC URL
+                  nativeCurrency: {
+                    name: 'Abstract ETH',
+                    symbol: 'ETH', // Use the actual symbol
+                    decimals: 18,
+                  },
+                  blockExplorerUrls: ['https://explorer.testnet.abs.xyz'], // Replace with actual explorer URL
+                },
+              ],
+            });
+            this.isConnected = true;
+            this.message = 'Abstract Testnet added and switched!';
+            this.init(); // Re-initialize after adding
+          } catch (addError) {
+            console.error('Failed to add Abstract Testnet:', addError);
+            this.message = 'Not connected to Abstract Testnet';
+          }
+        } else {
+          console.error('Failed to switch to Abstract Testnet:', switchError);
+          this.message = 'Not connected to Abstract Testnet';
+        }
+      }
+    },
     async enterLottery() {
-      if (typeof window.ethereum !== 'undefined') {
+      if (typeof window.ethereum !== 'undefined' && this.isConnected) {
         try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
@@ -160,7 +214,7 @@ export default {
       }
     },
     async pickWinner() {
-      if (typeof window.ethereum !== 'undefined') {
+      if (typeof window.ethereum !== 'undefined' && this.isConnected) {
         try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
@@ -220,6 +274,11 @@ button {
 
 button:hover {
   background-color: #45a049;
+}
+
+button:disabled {
+  background-color: #999;
+  cursor: not-allowed;
 }
 
 ul {
