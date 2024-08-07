@@ -3,6 +3,7 @@
     <img src="@/assets/logo.svg" alt="Lucky Chad Logo" class="logo" />
     <h1>Lucky Chad Lottery</h1>
     <p>Entry Fee: {{ entryFee }} ETH</p>
+    <p>Total Pot Balance: {{ contractBalance }} ETH</p>
     <button @click="enterLottery" :disabled="!isConnected">Enter Lottery</button>
     <p>{{ message }}</p>
     <h2>Players:</h2>
@@ -20,98 +21,99 @@ export default {
     return {
       players: [],
       entryFee: '',
+      contractBalance: '',
       message: '',
-      contractAddress: '0x8e87FE1B75bF8f1d8808323cA5A32F152491C5A1', // Replace with your contract address
+      contractAddress: '0x8e87FE1B75bF8f1d8808323cA5A32F152491C5A1',
       contractABI: [
         {
           inputs: [],
-          stateMutability: "nonpayable",
-          type: "constructor",
+          stateMutability: 'nonpayable',
+          type: 'constructor',
         },
         {
           inputs: [],
-          name: "enter",
+          name: 'enter',
           outputs: [],
-          stateMutability: "payable",
-          type: "function",
+          stateMutability: 'payable',
+          type: 'function',
         },
         {
           inputs: [],
-          name: "entryFee",
+          name: 'entryFee',
           outputs: [
             {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
+              internalType: 'uint256',
+              name: '',
+              type: 'uint256',
             },
           ],
-          stateMutability: "view",
-          type: "function",
+          stateMutability: 'view',
+          type: 'function',
         },
         {
           inputs: [],
-          name: "getOwner",
+          name: 'getOwner',
           outputs: [
             {
-              internalType: "address",
-              name: "",
-              type: "address",
+              internalType: 'address',
+              name: '',
+              type: 'address',
             },
           ],
-          stateMutability: "view",
-          type: "function",
+          stateMutability: 'view',
+          type: 'function',
         },
         {
           inputs: [],
-          name: "getPlayers",
+          name: 'getPlayers',
           outputs: [
             {
-              internalType: "address[]",
-              name: "",
-              type: "address[]",
+              internalType: 'address[]',
+              name: '',
+              type: 'address[]',
             },
           ],
-          stateMutability: "view",
-          type: "function",
+          stateMutability: 'view',
+          type: 'function',
         },
         {
           inputs: [],
-          name: "owner",
+          name: 'owner',
           outputs: [
             {
-              internalType: "address",
-              name: "",
-              type: "address",
+              internalType: 'address',
+              name: '',
+              type: 'address',
             },
           ],
-          stateMutability: "view",
-          type: "function",
+          stateMutability: 'view',
+          type: 'function',
         },
         {
           inputs: [],
-          name: "pickWinner",
+          name: 'pickWinner',
           outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
+          stateMutability: 'nonpayable',
+          type: 'function',
         },
         {
           inputs: [
             {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
+              internalType: 'uint256',
+              name: '',
+              type: 'uint256',
             },
           ],
-          name: "players",
+          name: 'players',
           outputs: [
             {
-              internalType: "address",
-              name: "",
-              type: "address",
+              internalType: 'address',
+              name: '',
+              type: 'address',
             },
           ],
-          stateMutability: "view",
-          type: "function",
+          stateMutability: 'view',
+          type: 'function',
         },
       ],
       isConnected: false,
@@ -125,25 +127,33 @@ export default {
       if (typeof window.ethereum !== 'undefined') {
         try {
           await window.ethereum.request({ method: 'eth_requestAccounts' });
-          const provider = new ethers.BrowserProvider(window.ethereum); // Use BrowserProvider for ethers v6
+          const provider = new ethers.BrowserProvider(window.ethereum); 
           const network = await provider.getNetwork();
 
           // Abstract Testnet chain ID
-          const abstractTestnetChainId = 11124n; // Replace with the actual chain ID
+          const abstractTestnetChainId = 11124n; 
 
           if (network.chainId !== abstractTestnetChainId) {
             await this.switchToAbstractTestnet();
           } else {
             this.isConnected = true;
             const signer = await provider.getSigner();
-            const contract = new ethers.Contract(this.contractAddress, this.contractABI, signer);
+            const contract = new ethers.Contract(
+              this.contractAddress,
+              this.contractABI,
+              signer
+            );
 
             // Fetch entry fee and players
             const fee = await contract.entryFee();
-            this.entryFee = ethers.formatEther(fee); // Updated for ethers v6
+            this.entryFee = ethers.formatEther(fee); 
 
             const playersArray = await contract.getPlayers();
             this.players = playersArray;
+
+            // Fetch contract balance
+            const balance = await provider.getBalance(this.contractAddress);
+            this.contractBalance = ethers.formatEther(balance);
           }
         } catch (error) {
           console.error('Error connecting to contract:', error);
@@ -159,34 +169,36 @@ export default {
         // Request MetaMask to switch to the Abstract Testnet
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2B74' }], // Use hex string of chain ID (1234 = 0x4D2)
+          params: [{ chainId: '0x2B74' }], 
         });
         this.isConnected = true;
         this.message = 'Connected to Abstract Testnet!';
-        this.init(); // Re-initialize after switching
+        this.init();
       } catch (switchError) {
-        // If the chain is not added, add it
+        
         if (switchError.code === 4902) {
           try {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
-                  chainId: '0x2B74', // Abstract Testnet chain ID
+                  chainId: '0x2B74', 
                   chainName: 'Abstract Testnet',
-                  rpcUrls: ['https://api.testnet.abs.xyz'], // Replace with actual RPC URL
+                  rpcUrls: ['https://api.testnet.abs.xyz'], 
                   nativeCurrency: {
                     name: 'Abstract ETH',
-                    symbol: 'ETH', // Use the actual symbol
+                    symbol: 'ETH', 
                     decimals: 18,
                   },
-                  blockExplorerUrls: ['https://explorer.testnet.abs.xyz'], // Replace with actual explorer URL
+                  blockExplorerUrls: [
+                    'https://explorer.testnet.abs.xyz',
+                  ], 
                 },
               ],
             });
             this.isConnected = true;
             this.message = 'Abstract Testnet added and switched!';
-            this.init(); // Re-initialize after adding
+            this.init();
           } catch (addError) {
             console.error('Failed to add Abstract Testnet:', addError);
             this.message = 'Not connected to Abstract Testnet';
@@ -202,11 +214,20 @@ export default {
         try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
-          const contract = new ethers.Contract(this.contractAddress, this.contractABI, signer);
+          const contract = new ethers.Contract(
+            this.contractAddress,
+            this.contractABI,
+            signer
+          );
 
-          const tx = await contract.enter({ value: ethers.parseEther(this.entryFee) }); // Updated for ethers v6
+          const tx = await contract.enter({
+            value: ethers.parseEther(this.entryFee),
+          }); 
           await tx.wait();
           this.message = 'Entered the lottery!';
+          
+          const balance = await provider.getBalance(this.contractAddress);
+          this.contractBalance = ethers.formatEther(balance);
         } catch (error) {
           console.error('Error entering lottery:', error);
           this.message = 'Failed to enter the lottery';
@@ -218,17 +239,24 @@ export default {
         try {
           const provider = new ethers.BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
-          const contract = new ethers.Contract(this.contractAddress, this.contractABI, signer);
+          const contract = new ethers.Contract(
+            this.contractAddress,
+            this.contractABI,
+            signer
+          );
 
           const tx = await contract.pickWinner();
           await tx.wait();
           this.message = 'Winner picked successfully!';
+          
+          const balance = await provider.getBalance(this.contractAddress);
+          this.contractBalance = ethers.formatEther(balance);
         } catch (error) {
           console.error('Error picking winner:', error);
           this.message = 'Failed to pick winner';
         }
       }
-    }
+    },
   },
 };
 </script>
