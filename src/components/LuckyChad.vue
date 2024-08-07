@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <div class="lottery-container">
+    <img src="@/assets/logo.svg" alt="Lucky Chad Logo" class="logo" />
     <h1>Lucky Chad Lottery</h1>
     <p>Entry Fee: {{ entryFee }} ETH</p>
     <button @click="enterLottery">Enter Lottery</button>
@@ -179,7 +180,60 @@ export default {
 </script>
 
 <style scoped>
+@font-face {
+  font-family: 'Avenue Mono';
+  src: url('@/assets/fonts/Avenue Mono.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.lottery-container {
+  text-align: center;
+  padding: 20px;
+  background-image: url('@/assets/background-tile.png'); /* Ensure this path is correct */
+  background-repeat: repeat; /* Ensures the background is tiled */
+  background-size: contain; /* Adjust size of tile if needed */
+  min-height: 100vh; /* Ensures the background covers the full viewport */
+  font-family: 'Avenue Mono', monospace;
+}
+
+.logo {
+  width: 150px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
 h1 {
-  font-size: 24px;
+  font-size: 28px;
+  color: #333;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  font-size: 18px;
+  margin: 5px 0;
+}
+
+p {
+  font-size: 16px;
+  color: #555;
 }
 </style>
